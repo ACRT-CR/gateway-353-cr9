@@ -36,8 +36,23 @@ static_resources:
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           stat_prefix: eg-ready-http
+          normalize_path: true
           route_config:
             name: local_route
+            {{- if .EnablePrometheus }}
+            virtual_hosts:
+            - name: prometheus_stats
+              domains:
+              - "*"
+              routes:
+              - match:
+                  path: /stats/prometheus
+                  headers:
+                  - name: ":method"
+                    exact_match: GET
+                route:
+                  cluster: prometheus_stats
+            {{- end }}
           http_filters:
           - name: envoy.filters.http.health_check
             typed_config:
@@ -51,6 +66,21 @@ static_resources:
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
+  {{- if .EnablePrometheus }}
+  - name: prometheus_stats
+    connect_timeout: 0.250s
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: prometheus_stats
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: {{ .AdminServer.Address }}
+                port_value: {{ .AdminServer.Port }}
+  {{- end }}
   - connect_timeout: 10s
     load_assignment:
       cluster_name: xds_cluster

@@ -1,6 +1,10 @@
 date: April 24, 2023
 
 changes:
+  - area: security
+    change: |
+      Fixed vulnerability which exposed the Envoy admin interface through the prometheus stats endpoint.
+
   - area: documentation
     change: |
       Added Docs for Installing and Using egctl
